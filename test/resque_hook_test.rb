@@ -3,13 +3,13 @@ require 'tempfile'
 
 describe "Resque Hooks" do
   before do
-    Resque.redis.flushall
+    ResqueSqs.redis.flushall
 
-    Resque.before_first_fork = nil
-    Resque.before_fork = nil
-    Resque.after_fork = nil
+    ResqueSqs.before_first_fork = nil
+    ResqueSqs.before_fork = nil
+    ResqueSqs.after_fork = nil
 
-    @worker = Resque::Worker.new(:jobs)
+    @worker = ResqueSqs::Worker.new(:jobs)
 
     $called = false
 
@@ -21,16 +21,16 @@ describe "Resque Hooks" do
   end
 
   it 'retrieving hooks if none have been set' do
-    assert_equal [], Resque.before_first_fork
-    assert_equal [], Resque.before_fork
-    assert_equal [], Resque.after_fork
+    assert_equal [], ResqueSqs.before_first_fork
+    assert_equal [], ResqueSqs.before_fork
+    assert_equal [], ResqueSqs.after_fork
   end
 
   it 'it calls before_first_fork once' do
     counter = 0
 
-    Resque.before_first_fork { counter += 1 }
-    2.times { Resque::Job.create(:jobs, CallNotifyJob) }
+    ResqueSqs.before_first_fork { counter += 1 }
+    2.times { ResqueSqs::Job.create(:jobs, CallNotifyJob) }
 
     assert_equal(0, counter)
     @worker.work(0)
@@ -40,8 +40,8 @@ describe "Resque Hooks" do
   it 'it calls before_fork before each job' do
     counter = 0
 
-    Resque.before_fork { counter += 1 }
-    2.times { Resque::Job.create(:jobs, CallNotifyJob) }
+    ResqueSqs.before_fork { counter += 1 }
+    2.times { ResqueSqs::Job.create(:jobs, CallNotifyJob) }
 
     assert_equal(0, counter)
     @worker.work(0)
@@ -56,11 +56,11 @@ describe "Resque Hooks" do
 
     begin
       File.open(file.path, "w") {|f| f.write(0)}
-      Resque.after_fork do
+      ResqueSqs.after_fork do
         val = File.read(file).strip.to_i
         File.open(file.path, "w") {|f| f.write(val + 1)}
       end
-      2.times { Resque::Job.create(:jobs, CallNotifyJob) }
+      2.times { ResqueSqs::Job.create(:jobs, CallNotifyJob) }
 
       val = File.read(file.path).strip.to_i
       assert_equal(0, val)
@@ -74,23 +74,23 @@ describe "Resque Hooks" do
   end
 
   it 'it calls before_first_fork before forking' do
-    Resque.before_first_fork { assert(!$called) }
+    ResqueSqs.before_first_fork { assert(!$called) }
 
-    Resque::Job.create(:jobs, CallNotifyJob)
+    ResqueSqs::Job.create(:jobs, CallNotifyJob)
     @worker.work(0)
   end
 
   it 'it calls before_fork before forking' do
-    Resque.before_fork { assert(!$called) }
+    ResqueSqs.before_fork { assert(!$called) }
 
-    Resque::Job.create(:jobs, CallNotifyJob)
+    ResqueSqs::Job.create(:jobs, CallNotifyJob)
     @worker.work(0)
   end
 
   it 'it calls after_fork after forking' do
-    Resque.after_fork { assert($called) }
+    ResqueSqs.after_fork { assert($called) }
 
-    Resque::Job.create(:jobs, CallNotifyJob)
+    ResqueSqs::Job.create(:jobs, CallNotifyJob)
     @worker.work(0)
   end
 
@@ -98,9 +98,9 @@ describe "Resque Hooks" do
     first = false
     second = false
 
-    Resque.before_first_fork { first = true }
-    Resque.before_first_fork { second = true }
-    Resque::Job.create(:jobs, CallNotifyJob)
+    ResqueSqs.before_first_fork { first = true }
+    ResqueSqs.before_first_fork { second = true }
+    ResqueSqs::Job.create(:jobs, CallNotifyJob)
 
     assert(!first && !second)
     @worker.work(0)
@@ -111,9 +111,9 @@ describe "Resque Hooks" do
     first = false
     second = false
 
-    Resque.before_fork { first = true }
-    Resque.before_fork { second = true }
-    Resque::Job.create(:jobs, CallNotifyJob)
+    ResqueSqs.before_fork { first = true }
+    ResqueSqs.before_fork { second = true }
+    ResqueSqs::Job.create(:jobs, CallNotifyJob)
 
     assert(!first && !second)
     @worker.work(0)
@@ -123,8 +123,8 @@ describe "Resque Hooks" do
   it 'flattens hooks on assignment' do
     first = false
     second = false
-    Resque.before_fork = [Proc.new { first = true }, Proc.new { second = true }]
-    Resque::Job.create(:jobs, CallNotifyJob)
+    ResqueSqs.before_fork = [Proc.new { first = true }, Proc.new { second = true }]
+    ResqueSqs::Job.create(:jobs, CallNotifyJob)
 
     assert(!first && !second)
     @worker.work(0)
@@ -140,16 +140,16 @@ describe "Resque Hooks" do
       File.open(file.path, "w") {|f| f.write(1)}
       File.open(file2.path, "w") {|f| f.write(2)}
 
-      Resque.after_fork do
+      ResqueSqs.after_fork do
         val = File.read(file.path).strip.to_i
         File.open(file.path, "w") {|f| f.write(val + 1)}
       end
 
-      Resque.after_fork do
+      ResqueSqs.after_fork do
         val = File.read(file2.path).strip.to_i
         File.open(file2.path, "w") {|f| f.write(val + 1)}
       end
-      Resque::Job.create(:jobs, CallNotifyJob)
+      ResqueSqs::Job.create(:jobs, CallNotifyJob)
 
       @worker.stubs(:will_fork?).returns(true)
       @worker.work(0)

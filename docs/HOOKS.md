@@ -14,13 +14,13 @@ Worker Hooks
 If you wish to have a Proc called before the worker forks for the
 first time, you can add it in the initializer like so:
 
-    Resque.before_first_fork do
+    ResqueSqs.before_first_fork do
       puts "Call me once before the worker forks the first time"
     end
 
 You can also run a hook before _every_ fork:
 
-    Resque.before_fork do |job|
+    ResqueSqs.before_fork do |job|
       puts "Call me before the worker forks"
     end
 
@@ -30,7 +30,7 @@ the worker.
 
 And after forking:
 
-    Resque.after_fork do |job|
+    ResqueSqs.after_fork do |job|
       puts "Call me after the worker forks"
     end
 
@@ -40,7 +40,7 @@ long as the job currently being processes.
 
 All worker hooks can also be set using a setter, e.g.
 
-    Resque.after_fork = proc { puts "called" }
+    ResqueSqs.after_fork = proc { puts "called" }
 
 
 Workers can also take advantage of running any code defined using Ruby's `at_exit` block by setting
@@ -83,20 +83,20 @@ The available hooks are:
   Any exception raised propagates up to the code which dequeued the job.
 
 * `before_perform`: Called with the job args before perform. If it raises
-  `Resque::Job::DontPerform`, the job is aborted. If other exceptions
-  are raised, they will be propagated up the the `Resque::Failure`
+  `ResqueSqs::Job::DontPerform`, the job is aborted. If other exceptions
+  are raised, they will be propagated up the the `ResqueSqs::Failure`
   backend.
 
 * `after_perform`: Called with the job args after it performs. Uncaught
-  exceptions will propagate up to the `Resque::Failure` backend.
+  exceptions will propagate up to the `ResqueSqs::Failure` backend.
 
 * `around_perform`: Called with the job args. It is expected to yield in order
   to perform the job (but is not required to do so). It may handle exceptions
   thrown by `perform`, but any that are not caught will propagate up to the
-  `Resque::Failure` backend.
+  `ResqueSqs::Failure` backend.
 
 * `on_failure`: Called with the exception and job args if any exception occurs
-  while performing the job (or hooks), this includes Resque::DirtyExit.
+  while performing the job (or hooks), this includes ResqueSqs::DirtyExit.
 
 Hooks are easily implemented with superclasses or modules. A superclass could
 look something like this.
@@ -131,7 +131,7 @@ Modules are even better because jobs can use many of them.
     module RetriedJob
       def on_failure_retry(e, *args)
         Logger.info "Performing #{self} caused an exception (#{e}). Retrying..."
-        Resque.enqueue self, *args
+        ResqueSqs.enqueue self, *args
       end
     end
 

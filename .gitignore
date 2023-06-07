@@ -2,3 +2,6 @@
 Gemfile.lock
 test/dump.rdb
 test/dump-cluster.rdb
+.idea/
+vendor/
+test/stdout

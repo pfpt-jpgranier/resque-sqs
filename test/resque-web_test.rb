@@ -1,5 +1,5 @@
 require 'test_helper'
-require 'resque/server/test_helper'
+require 'resque_sqs/server/test_helper'
  
 # Root path test
 context "on GET to /" do

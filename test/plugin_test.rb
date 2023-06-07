@@ -1,6 +1,6 @@
 require 'test_helper'
 
-context "Resque::Plugin finding hooks" do
+context "ResqueSqs::Plugin finding hooks" do
   module SimplePlugin
     extend self
     def before_perform1; end
@@ -19,23 +19,23 @@ context "Resque::Plugin finding hooks" do
   end
 
   test "before_perform hooks are found and sorted" do
-    assert_equal ["before_perform", "before_perform1", "before_perform2"], Resque::Plugin.before_hooks(SimplePlugin).map {|m| m.to_s}
+    assert_equal ["before_perform", "before_perform1", "before_perform2"], ResqueSqs::Plugin.before_hooks(SimplePlugin).map {|m| m.to_s}
   end
 
   test "after_perform hooks are found and sorted" do
-    assert_equal ["after_perform", "after_perform1", "after_perform2"], Resque::Plugin.after_hooks(SimplePlugin).map {|m| m.to_s}
+    assert_equal ["after_perform", "after_perform1", "after_perform2"], ResqueSqs::Plugin.after_hooks(SimplePlugin).map {|m| m.to_s}
   end
 
   test "around_perform hooks are found and sorted" do
-    assert_equal ["around_perform", "around_perform1", "around_perform2"], Resque::Plugin.around_hooks(SimplePlugin).map {|m| m.to_s}
+    assert_equal ["around_perform", "around_perform1", "around_perform2"], ResqueSqs::Plugin.around_hooks(SimplePlugin).map {|m| m.to_s}
   end
 
   test "on_failure hooks are found and sorted" do
-    assert_equal ["on_failure", "on_failure1", "on_failure2"], Resque::Plugin.failure_hooks(SimplePlugin).map {|m| m.to_s}
+    assert_equal ["on_failure", "on_failure1", "on_failure2"], ResqueSqs::Plugin.failure_hooks(SimplePlugin).map {|m| m.to_s}
   end
 end
 
-context "Resque::Plugin linting" do
+context "ResqueSqs::Plugin linting" do
   module ::BadBefore
     def self.before_perform; end
   end
@@ -51,36 +51,36 @@ context "Resque::Plugin linting" do
 
   test "before_perform must be namespaced" do
     begin
-      Resque::Plugin.lint(BadBefore)
+      ResqueSqs::Plugin.lint(BadBefore)
       assert false, "should have failed"
-    rescue Resque::Plugin::LintError => e
+    rescue ResqueSqs::Plugin::LintError => e
       assert_equal "BadBefore.before_perform is not namespaced", e.message
     end
   end
 
   test "after_perform must be namespaced" do
     begin
-      Resque::Plugin.lint(BadAfter)
+      ResqueSqs::Plugin.lint(BadAfter)
       assert false, "should have failed"
-    rescue Resque::Plugin::LintError => e
+    rescue ResqueSqs::Plugin::LintError => e
       assert_equal "BadAfter.after_perform is not namespaced", e.message
     end
   end
 
   test "around_perform must be namespaced" do
     begin
-      Resque::Plugin.lint(BadAround)
+      ResqueSqs::Plugin.lint(BadAround)
       assert false, "should have failed"
-    rescue Resque::Plugin::LintError => e
+    rescue ResqueSqs::Plugin::LintError => e
       assert_equal "BadAround.around_perform is not namespaced", e.message
     end
   end
 
   test "on_failure must be namespaced" do
     begin
-      Resque::Plugin.lint(BadFailure)
+      ResqueSqs::Plugin.lint(BadFailure)
       assert false, "should have failed"
-    rescue Resque::Plugin::LintError => e
+    rescue ResqueSqs::Plugin::LintError => e
       assert_equal "BadFailure.on_failure is not namespaced", e.message
     end
   end
@@ -99,18 +99,18 @@ context "Resque::Plugin linting" do
   end
 
   test "before_perform1 is an ok name" do
-    Resque::Plugin.lint(GoodBefore)
+    ResqueSqs::Plugin.lint(GoodBefore)
   end
 
   test "after_perform1 is an ok name" do
-    Resque::Plugin.lint(GoodAfter)
+    ResqueSqs::Plugin.lint(GoodAfter)
   end
 
   test "around_perform1 is an ok name" do
-    Resque::Plugin.lint(GoodAround)
+    ResqueSqs::Plugin.lint(GoodAround)
   end
 
   test "on_failure1 is an ok name" do
-    Resque::Plugin.lint(GoodFailure)
+    ResqueSqs::Plugin.lint(GoodFailure)
   end
 end

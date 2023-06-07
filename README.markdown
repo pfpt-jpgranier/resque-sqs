@@ -69,7 +69,7 @@ to our application's pre-existing `Repository` class:
 ``` ruby
 class Repository
   def async_create_archive(branch)
-    Resque.enqueue(Archive, self.id, branch)
+    ResqueSqs.enqueue(Archive, self.id, branch)
   end
 end
 ```
@@ -81,7 +81,7 @@ queue.
 Later, a worker will run something like this code to process the job:
 
 ``` ruby
-klass, args = Resque.reserve(:file_serve)
+klass, args = ResqueSqs.reserve(:file_serve)
 klass.perform(*args) if klass.respond_to? :perform
 ```
 
@@ -94,11 +94,11 @@ Archive.perform(44, 'masterbrew')
 Let's start a worker to run `file_serve` jobs:
 
     $ cd app_root
-    $ QUEUE=file_serve rake resque:work
+    $ QUEUE=file_serve rake resque_sqs:work
 
 This starts one Resque worker and tells it to work off the
 `file_serve` queue. As soon as it's ready it'll try to run the
-`Resque.reserve` code snippet above and process jobs until it can't
+`ResqueSqs.reserve` code snippet above and process jobs until it can't
 find any more, at which point it will sleep for a small period and
 repeatedly poll the queue for more jobs.
 
@@ -157,13 +157,13 @@ Because of this your jobs must only accept arguments that can be JSON encoded.
 So instead of doing this:
 
 ``` ruby
-Resque.enqueue(Archive, self, branch)
+ResqueSqs.enqueue(Archive, self, branch)
 ```
 
 do this:
 
 ``` ruby
-Resque.enqueue(Archive, self.id, branch)
+ResqueSqs.enqueue(Archive, self.id, branch)
 ```
 
 This is why our above example (and all the examples in `examples/`)
@@ -190,7 +190,7 @@ We plan to provide first class `async` support in a future release.
 ### Failure
 
 If a job raises an exception, it is logged and handed off to the
-`Resque::Failure` module. Failures are logged either locally in Redis
+`ResqueSqs::Failure` module. Failures are logged either locally in Redis
 or using some different backend.
 
 For example, Resque ships with Airbrake support.
@@ -218,7 +218,7 @@ shutdown
 
 Starting a worker is simple. Here's our example from earlier:
 
-    $ QUEUE=file_serve rake resque:work
+    $ QUEUE=file_serve rake resque_sqs:work
 
 By default Resque won't know about your application's
 environment. That is, it won't be able to find and run your jobs - it
@@ -227,20 +227,20 @@ needs to load your application into memory.
 If we've installed Resque as a Rails plugin, we might run this command
 from our RAILS_ROOT:
 
-    $ QUEUE=file_serve rake environment resque:work
+    $ QUEUE=file_serve rake environment resque_sqs:work
 
 This will load the environment before starting a worker. Alternately
-we can define a `resque:setup` task with a dependency on the
+we can define a `resque_sqs:setup` task with a dependency on the
 `environment` rake task:
 
 ``` ruby
-task "resque:setup" => :environment
+task "resque_sqs:setup" => :environment
 ```
 
 GitHub's setup task looks like this:
 
 ``` ruby
-task "resque:setup" => :environment do
+task "resque_sqs:setup" => :environment do
   Grit::Git.git_timeout = 10.minutes
 end
 ```
@@ -256,14 +256,14 @@ Workers support basic logging to STDOUT. If you start them with the
 information. You can also set the `VVERBOSE` (very verbose) env
 variable.
 
-    $ VVERBOSE=1 QUEUE=file_serve rake environment resque:work
+    $ VVERBOSE=1 QUEUE=file_serve rake environment resque_sqs:work
 
 ### Process IDs (PIDs)
 
 There are scenarios where it's helpful to record the PID of a resque
 worker process.  Use the PIDFILE option for easy access to the PID:
 
-    $ PIDFILE=./resque.pid QUEUE=file_serve rake environment resque:work
+    $ PIDFILE=./resque.pid QUEUE=file_serve rake environment resque_sqs:work
 
 ### Running in the background
 
@@ -273,14 +273,14 @@ PIDFILE).  Use the BACKGROUND option so that rake will return as soon as the
 worker is started.
 
     $ PIDFILE=./resque.pid BACKGROUND=yes QUEUE=file_serve \
-        rake environment resque:work
+        rake environment resque_sqs:work
 
 ### Polling frequency
 
 You can pass an INTERVAL option which is a float representing the polling frequency.
 The default is 5 seconds, but for a semi-active app you may want to use a smaller value.
 
-    $ INTERVAL=0.1 QUEUE=file_serve rake environment resque:work
+    $ INTERVAL=0.1 QUEUE=file_serve rake environment resque_sqs:work
 
 ### Priorities and Queue Lists
 
@@ -290,7 +290,7 @@ of queues you give it. We call this list of queues the "queue list."
 Let's say we add a `warm_cache` queue in addition to our `file_serve`
 queue. We'd now start a worker like so:
 
-    $ QUEUES=file_serve,warm_cache rake resque:work
+    $ QUEUES=file_serve,warm_cache rake resque_sqs:work
 
 When the worker looks for new jobs, it will first check
 `file_serve`. If it finds a job, it'll process it then check
@@ -302,7 +302,7 @@ whole process).
 In this way you can prioritize certain queues. At GitHub we start our
 workers with something like this:
 
-    $ QUEUES=critical,archive,high,low rake resque:work
+    $ QUEUES=critical,archive,high,low rake resque_sqs:work
 
 Notice the `archive` queue - it is specialized and in our future
 architecture will only be run from a single machine.
@@ -310,11 +310,11 @@ architecture will only be run from a single machine.
 At that point we'll start workers on our generalized background
 machines with this command:
 
-    $ QUEUES=critical,high,low rake resque:work
+    $ QUEUES=critical,high,low rake resque_sqs:work
 
 And workers on our specialized archive machine with this command:
 
-    $ QUEUE=archive rake resque:work
+    $ QUEUE=archive rake resque_sqs:work
 
 
 ### Running All Queues
@@ -322,7 +322,7 @@ And workers on our specialized archive machine with this command:
 If you want your workers to work off of every queue, including new
 queues created on the fly, you can use a splat:
 
-    $ QUEUE=* rake resque:work
+    $ QUEUE=* rake resque_sqs:work
 
 Queues will be processed in alphabetical order.
 
@@ -334,9 +334,9 @@ configuration file is included under `examples/god`. We recommend this
 method.
 
 If you'd like to run multiple workers in development mode, you can do
-so using the `resque:workers` rake task:
+so using the `resque_sqs:workers` rake task:
 
-    $ COUNT=5 QUEUE=* rake resque:workers
+    $ COUNT=5 QUEUE=* rake resque_sqs:workers
 
 This will spawn five Resque workers, each in its own process. Hitting
 ctrl-c should be sufficient to stop them all.
@@ -389,8 +389,8 @@ Workers instead handle their own state.
 Here's a parent / child pair doing some work:
 
     $ ps -e -o pid,command | grep [r]esque
-    92099 resque: Forked 92102 at 1253142769
-    92102 resque: Processing file_serve since 1253142769
+    92099 resque_sqs: Forked 92102 at 1253142769
+    92102 resque_sqs: Processing file_serve since 1253142769
 
 You can clearly see that process 92099 forked 92102, which has been
 working since 1253142769.
@@ -402,7 +402,7 @@ When a parent process is idle, it lets you know what queues it is
 waiting for work on:
 
     $ ps -e -o pid,command | grep [r]esque
-    92099 resque: Waiting for file_serve,warm_cache
+    92099 resque_sqs: Waiting for file_serve,warm_cache
 
 
 ### Signals
@@ -479,11 +479,11 @@ If you want to load Resque on a subpath, possibly alongside other
 apps, it's easy to do with Rack's `URLMap`:
 
 ``` ruby
-require 'resque/server'
+require 'resque_sqs/server'
 
 run Rack::URLMap.new \
   "/"       => Your::App.new,
-  "/resque" => Resque::Server.new
+  "/resque" => ResqueSqs::Server.new
 ```
 
 Check `examples/demo/config.ru` for a functional example (including
@@ -491,10 +491,10 @@ HTTP basic auth).
 
 ### Rails 3
 
-You can also mount Resque on a subpath in your existing Rails 3 app by adding `require 'resque/server'` to the top of your routes file or in an initializer then adding this to `routes.rb`:
+You can also mount Resque on a subpath in your existing Rails 3 app by adding `require 'resque_sqs/server'` to the top of your routes file or in an initializer then adding this to `routes.rb`:
 
 ``` ruby
-mount Resque::Server.new, :at => "/resque"
+mount ResqueSqs::Server.new, :at => "/resque"
 ```
 
 
@@ -562,7 +562,7 @@ First install the gem.
 Next include it in your application.
 
 ``` ruby
-require 'resque'
+require 'resque_sqs'
 ```
 
 Now start your application:
@@ -576,14 +576,14 @@ to an existing Rakefile):
 
 ``` ruby
 require 'your/app'
-require 'resque/tasks'
+require 'resque_sqs/tasks'
 ```
 
 Now:
 
-    $ QUEUE=* rake resque:work
+    $ QUEUE=* rake resque_sqs:work
 
-Alternately you can define a `resque:setup` hook in your Rakefile if you
+Alternately you can define a `resque_sqs:setup` hook in your Rakefile if you
 don't want to load your app every time rake runs.
 
 
@@ -596,7 +596,7 @@ First install the gem.
 Next include it in your application.
 
     $ cat config/initializers/load_resque.rb
-    require 'resque'
+    require 'resque_sqs'
 
 Now start your application:
 
@@ -607,14 +607,14 @@ That's it! You can now create Resque jobs from within your app.
 To start a worker, add this to your Rakefile in `RAILS_ROOT`:
 
 ``` ruby
-require 'resque/tasks'
+require 'resque_sqs/tasks'
 ```
 
 Now:
 
-    $ QUEUE=* rake environment resque:work
+    $ QUEUE=* rake environment resque_sqs:work
 
-Don't forget you can define a `resque:setup` hook in
+Don't forget you can define a `resque_sqs:setup` hook in
 `lib/tasks/whatever.rake` that loads the `environment` task every time.
 
 
@@ -627,9 +627,9 @@ loads.
 
 To start a worker:
 
-    $ QUEUE=* rake environment resque:work
+    $ QUEUE=* rake environment resque_sqs:work
 
-Don't forget you can define a `resque:setup` hook in
+Don't forget you can define a `resque_sqs:setup` hook in
 `lib/tasks/whatever.rake` that loads the `environment` task every time.
 
 
@@ -639,7 +639,7 @@ First include it in your Gemfile.
 
     $ cat Gemfile
     ...
-    gem 'resque'
+    gem 'resque_sqs'
     ...
 
 Next install it with Bundler.
@@ -656,14 +656,14 @@ To start a worker, add this to a file in `lib/tasks` (ex:
 `lib/tasks/resque.rake`):
 
 ``` ruby
-require 'resque/tasks'
+require 'resque_sqs/tasks'
 ```
 
 Now:
 
-    $ QUEUE=* rake environment resque:work
+    $ QUEUE=* rake environment resque_sqs:work
 
-Don't forget you can define a `resque:setup` hook in
+Don't forget you can define a `resque_sqs:setup` hook in
 `lib/tasks/whatever.rake` that loads the `environment` task every time.
 
 
@@ -677,9 +677,9 @@ Resque has a `redis` setter which can be given a string or a Redis
 object. This means if you're already using Redis in your app, Resque
 can re-use the existing connection.
 
-String: `Resque.redis = 'localhost:6379'`
+String: `ResqueSqs.redis = 'localhost:6379'`
 
-Redis: `Resque.redis = $redis`
+Redis: `ResqueSqs.redis = $redis`
 
 For our rails app we have a `config/initializers/resque.rb` file where
 we load `config/resque.yml` by hand and set the Redis information
@@ -700,7 +700,7 @@ rails_root = ENV['RAILS_ROOT'] || File.dirname(__FILE__) + '/../..'
 rails_env = ENV['RAILS_ENV'] || 'development'
 
 resque_config = YAML.load_file(rails_root + '/config/resque.yml')
-Resque.redis = resque_config[rails_env]
+ResqueSqs.redis = resque_config[rails_env]
 ```
 
 Easy peasy! Why not just use `RAILS_ROOT` and `RAILS_ENV`? Because
@@ -714,7 +714,7 @@ Also, you could disable jobs queueing by setting 'inline' attribute.
 For example, if you want to run all jobs in the same process for cucumber, try:
 
 ``` ruby
-Resque.inline = ENV['RAILS_ENV'] == "cucumber"
+ResqueSqs.inline = ENV['RAILS_ENV'] == "cucumber"
 ```
 
 
@@ -725,7 +725,7 @@ For a list of available plugins see
 <http://wiki.github.com/resque/resque/plugins>.
 
 If you'd like to write your own plugin, or want to customize Resque
-using hooks (such as `Resque.after_fork`), see
+using hooks (such as `ResqueSqs.after_fork`), see
 [docs/HOOKS.md](http://github.com/resque/resque/blob/master/docs/HOOKS.md).
 
 
@@ -740,10 +740,10 @@ This feature is provided by the [redis-namespace][rs] library, which
 Resque uses by default to separate the keys it manages from other keys
 in your Redis server.
 
-Simply use the `Resque.redis.namespace` accessor:
+Simply use the `ResqueSqs.redis.namespace` accessor:
 
 ``` ruby
-Resque.redis.namespace = "resque:GitHub"
+ResqueSqs.redis.namespace = "resque_sqs:GitHub"
 ```
 
 We recommend sticking this in your initializer somewhere after Redis

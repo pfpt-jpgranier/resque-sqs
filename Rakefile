@@ -5,7 +5,7 @@
 load 'lib/tasks/redis.rake'
 
 $LOAD_PATH.unshift 'lib'
-require 'resque/tasks'
+require 'resque_sqs/tasks'
 
 def command?(command)
   system("type #{command} > /dev/null 2>&1")
@@ -59,12 +59,12 @@ end
 
 desc "Push a new version to Gemcutter"
 task :publish do
-  require 'resque/version'
+  require 'resque_sqs/version'
 
   sh "gem build resque.gemspec"
-  sh "gem push resque-#{Resque::Version}.gem"
-  sh "git tag v#{Resque::Version}"
-  sh "git push origin v#{Resque::Version}"
+  sh "gem push resque-#{ResqueSqs::Version}.gem"
+  sh "git tag v#{ResqueSqs::Version}"
+  sh "git push origin v#{ResqueSqs::Version}"
   sh "git push origin master"
   sh "git clean -fd"
 end
