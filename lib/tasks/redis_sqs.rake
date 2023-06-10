@@ -3,7 +3,7 @@ require 'fileutils'
 require 'open-uri'
 require 'pathname'
 
-class RedisRunner
+class RedisSqsRunner
   def self.redis_dir
     @redis_dir ||= if ENV['PREFIX']
                      Pathname.new(ENV['PREFIX'])
@@ -34,7 +34,7 @@ class RedisRunner
   end
 
   def self.start
-    puts 'Detach with Ctrl+\  Re-attach with rake redis:attach'
+    puts 'Detach with Ctrl+\  Re-attach with rake redis_sqs:attach'
     sleep 1
     command = "#{bin_dir}/dtach -A #{dtach_socket} #{bin_dir}/redis-server #{config}"
     sh command
@@ -51,7 +51,7 @@ end
 
 INSTALL_DIR = ENV['INSTALL_DIR'] || '/tmp/redis'
 
-namespace :redis do
+namespace :sqs_redis do
   desc 'About redis'
   task :about do
     puts "\nSee http://code.google.com/p/redis/ for information about redis.\n\n"
@@ -59,28 +59,28 @@ namespace :redis do
 
   desc 'Start redis'
   task :start do
-    RedisRunner.start
+    RedisSqsRunner.start
   end
 
   desc 'Stop redis'
   task :stop do
-    RedisRunner.stop
+    RedisSqsRunner.stop
   end
 
   desc 'Restart redis'
   task :restart do
-    RedisRunner.stop
-    RedisRunner.start
+    RedisSqsRunner.stop
+    RedisSqsRunner.start
   end
 
   desc 'Attach to redis dtach socket'
   task :attach do
-    RedisRunner.attach
+    RedisSqsRunner.attach
   end
 
   desc <<-DOC
   Install the latest verison of Redis from Github (requires git, duh).
-    Use INSTALL_DIR env var like "rake redis:install INSTALL_DIR=~/tmp"
+    Use INSTALL_DIR env var like "rake redis_sqs:install INSTALL_DIR=~/tmp"
     in order to get an alternate location for your install files.
   DOC
 
@@ -121,7 +121,7 @@ namespace :redis do
   end
 end
 
-namespace :dtach do
+namespace :dtach_sqs do
   desc 'About dtach'
   task :about do
     puts "\nSee http://dtach.sourceforge.net/ for information about dtach.\n\n"

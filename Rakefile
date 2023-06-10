@@ -2,7 +2,7 @@
 # Setup
 #
 
-load 'lib/tasks/redis.rake'
+load 'lib/tasks/sqs_redis.rake'
 
 $LOAD_PATH.unshift 'lib'
 require 'resque_sqs/tasks'
@@ -40,7 +40,7 @@ end
 # Install
 #
 
-task :install => [ 'redis:install', 'dtach:install' ]
+task :install => [ 'redis_sqs:install', 'dtach_sqs:install' ]
 
 
 #
