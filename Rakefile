@@ -58,11 +58,11 @@ end
 #
 
 desc "Push a new version to Gemcutter"
-task :publish do
+task :sqs_publish do
   require 'resque_sqs/version'
 
-  sh "gem build resque.gemspec"
-  sh "gem push resque-#{ResqueSqs::Version}.gem"
+  sh "gem build resque_sqs.gemspec"
+  sh "gem push resque_sqs-#{ResqueSqs::Version}.gem"
   sh "git tag v#{ResqueSqs::Version}"
   sh "git push origin v#{ResqueSqs::Version}"
   sh "git push origin master"
