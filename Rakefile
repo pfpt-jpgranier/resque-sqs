@@ -2,7 +2,7 @@
 # Setup
 #
 
-load 'lib/tasks/sqs_redis.rake'
+load 'lib/tasks/redis_sqs.rake'
 
 $LOAD_PATH.unshift 'lib'
 require 'resque_sqs/tasks'
